@@ -2,6 +2,8 @@ import { Directory, File, Paths } from 'expo-file-system'
 import * as MediaLibrary from 'expo-media-library'
 import { Platform } from 'react-native'
 
+import { APP_MEDIA_HOST_URL, REMOTE_ENDPOINTS } from './remote'
+
 export interface BenchSource {
   id: string
   label: string
@@ -134,6 +136,33 @@ export function corruptSource(): BenchSource {
     uri: file.uri,
     note: 'generated at runtime',
   }
+}
+
+/**
+ * Remote videos, for benchmarking the network path.
+ *
+ * Only the endpoints that are expected to decode are listed — the failure cases
+ * belong to the remote acceptance matrix, not to a latency benchmark.
+ */
+export function listRemoteSources(): BenchSource[] {
+  const sources = REMOTE_ENDPOINTS.filter(
+    (endpoint) => endpoint.expect === 'success'
+  ).map((endpoint) => ({
+    id: `remote:${endpoint.id}`,
+    label: `${endpoint.label} (remote)`,
+    uri: endpoint.url,
+    note: endpoint.thirdParty ? 'third-party sample' : 'remote',
+  }))
+
+  if (APP_MEDIA_HOST_URL) {
+    sources.unshift({
+      id: 'remote:app-host',
+      label: 'Your app media host (remote)',
+      uri: APP_MEDIA_HOST_URL,
+      note: 'the host the migration decision depends on',
+    })
+  }
+  return sources
 }
 
 export function missingSource(): BenchSource {

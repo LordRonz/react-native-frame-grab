@@ -2,8 +2,7 @@
   "name": "react-native-frame-grab",
   "version": "0.0.1",
   "description": "Fast video thumbnail extraction for React Native: one frame, straight to a JPEG file.",
-  "main": "lib/index",
-  "module": "lib/index",
+  "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "react-native": "src/index",
   "source": "src/index",
@@ -34,6 +33,7 @@
     "clean": "rm -rf android/build node_modules/**/android/build lib",
     "lint": "eslint \"**/*.{js,ts,tsx}\" --fix",
     "lint-ci": "eslint \"**/*.{js,ts,tsx}\" -f @jamesacarr/github-actions --max-warnings 0",
+    "prepack": "npm run typescript",
     "typescript": "tsc",
     "specs": "tsc --noEmit && nitrogen --logLevel=\"debug\""
   },
@@ -71,11 +71,6 @@
     "react": "*",
     "react-native": "*",
     "react-native-nitro-modules": "*"
-  },
-  "peerDependenciesMeta": {
-    "react-native-nitro-modules": {
-      "optional": true
-    }
   },
   "eslintConfig": {
     "root": true,

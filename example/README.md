@@ -96,6 +96,43 @@ the only binding constraint, `cacheName` is left unset so the benchmark is not
 timing cache hits, and the move out of its private cache directory into
 `destinationUri` is counted as adapter overhead.
 
+## Remote sources
+
+`src/remote.ts` holds the endpoint list. **Set `APP_MEDIA_HOST_URL` to your own
+media host** — a signed URL if that is how your app serves video. Public samples
+cannot clear the remote gate; the plan's rule is that if native behaviour is
+unacceptable on the real host, you stop and keep the existing app pipeline for
+remote sources rather than adding a downloader or faking a timeout.
+
+Two buttons in the app:
+
+- **Remote acceptance matrix** — HTTPS progressive, a larger 30 MB file, a
+  server that ignores `Range`, a 302 redirect, cleartext HTTP, HTTP 404, an
+  unresolvable host, and a delayed response.
+
+  Public sample endpoints rot. These were verified reachable on 2026-09-16; the
+  `commondatastorage.googleapis.com/gtv-videos-bucket` URLs that used to be the
+  standard choice now return `403 AccessDenied`. Re-check them if several rows
+  start reporting as unreachable at once.
+- **Benchmark — remote workloads** — enabled once a remote source is selected.
+  Deliberately small (10 sequential, one 4-request burst): the local set's 500
+  iterations would measure the CDN and be rude to it.
+
+Every endpoint is probed with a `bytes=0-0` range GET *before* extraction, so
+the report separates server behaviour (status, range support, size, time to
+first byte) from decoding. That probe also means a third-party sample being down
+reads as `endpoint unreachable — extraction not attempted` instead of looking
+like a library defect. Your own host being unreachable is still a failure.
+
+Two results are recorded rather than asserted, on purpose:
+
+- **Cleartext HTTP** is listed as an expected failure, but succeeding is equally
+  correct — it depends on the app's ATS / Android cleartext policy. The library
+  must never weaken that policy to make the check pass.
+- **The delayed endpoint** reports how long the native scheduler slot stayed
+  occupied. `MediaMetadataRetriever` cannot be interrupted, so there is no
+  timeout to assert — only a cost to document.
+
 ## Fixtures
 
 The benchmark runs against whatever video you select. Two sources are offered:

@@ -95,6 +95,26 @@ export function defaultWorkloads(nonKeyframeTimeMs = 3_500): Workload[] {
   ]
 }
 
+/**
+ * Remote workloads, deliberately much smaller than the local set.
+ *
+ * Latency here is dominated by the network, so 500 sequential runs would measure
+ * the CDN and be rude to it. What matters is time to first result, whether a
+ * burst behaves, and that the numbers are reported separately from local
+ * decoding rather than averaged in with it.
+ */
+export function remoteWorkloads(): Workload[] {
+  return [
+    workload({ id: 'remote-primary', label: 'remote: time 0, 480px, fast', iterations: 10 }),
+    workload({
+      id: 'remote-burst-4',
+      label: 'remote: 4-request burst',
+      concurrency: 4,
+      iterations: 12,
+    }),
+  ]
+}
+
 /* -------------------------------------------------------------------------- */
 /* Reports                                                                     */
 /* -------------------------------------------------------------------------- */
@@ -138,6 +158,7 @@ const CAVEATS = [
   'Equal numeric JPEG quality does not mean equal visual quality: compare the images and the byte sizes, not just the settings.',
   'Competitors that do not expose frame-selection settings were run at their defaults; that is not the same work as an explicit precise request.',
   'Run release builds on a physical device. Debug builds and simulators do not measure the same thing.',
+  'Remote runs measure the network as much as the decoder, and nothing here observes how many bytes the framework actually read. Treat remote latency as time-to-first-result on the network you ran it on, not as a property of the library.',
 ]
 
 /* -------------------------------------------------------------------------- */

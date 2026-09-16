@@ -14,6 +14,7 @@ import {
   type FrameGrabErrorCode,
 } from 'react-native-frame-grab'
 
+import { APP_MEDIA_HOST_URL, probeEndpoint, REMOTE_ENDPOINTS } from './remote'
 import { outputDirectory, outputFile, resetOutputDirectory, type BenchSource } from './sources'
 
 export interface Check {
@@ -271,9 +272,19 @@ export async function runHarness(
       extractThumbnail({ ...base, destinationUri: directoryDestination.uri })
     )
   )
+  // Aim both at a local file that exists.
+  //
+  // Reusing `source.uri` for both only works when the selected source is a local
+  // file. A `content://` or `https://` source is a valid *source* but an
+  // unsupported *destination*, so the destination scheme is rejected first and
+  // the result is E_UNSUPPORTED_URI — correct, but not what this check is about.
+  const identityTarget =
+    source.uri.startsWith('file://') || source.uri.startsWith('/')
+      ? source.uri
+      : primary.uri
   add(
     await expectCode('source and destination are the same file', 'E_INVALID_ARGUMENT', () =>
-      extractThumbnail({ sourceUri: source.uri, destinationUri: source.uri })
+      extractThumbnail({ sourceUri: identityTarget, destinationUri: identityTarget })
     )
   )
 
@@ -397,6 +408,125 @@ export async function runHarness(
   })
 
   // endregion
+
+  return checks
+}
+
+/**
+ * Remote acceptance matrix (plan sections 7 and 16).
+ *
+ * Run separately from the local matrix: network behaviour has to be measured on
+ * its own, and a third-party sample endpoint going down is not a library
+ * failure. Every endpoint is probed over plain HTTP first so the two are
+ * distinguishable in the results.
+ */
+export async function runRemoteHarness(): Promise<Check[]> {
+  resetOutputDirectory()
+  setMaxConcurrency(2)
+  const checks: Check[] = []
+
+  const endpoints = [...REMOTE_ENDPOINTS]
+  if (APP_MEDIA_HOST_URL) {
+    endpoints.unshift({
+      id: 'app-media-host',
+      label: 'Your app media host',
+      url: APP_MEDIA_HOST_URL,
+      expect: 'success',
+      covers: 'the host the remote migration decision actually depends on',
+    })
+  } else {
+    checks.push({
+      id: 'app media host configured',
+      passed: false,
+      detail:
+        'APP_MEDIA_HOST_URL is null in src/remote.ts. Public samples cannot clear ' +
+        'the remote gate — point it at your real host, signed URL included.',
+    })
+  }
+
+  for (const endpoint of endpoints) {
+    const probe = await probeEndpoint(endpoint.url)
+
+    if (!probe.reachable) {
+      checks.push({
+        id: `${endpoint.label}: endpoint reachable`,
+        // A dead third-party sample is an inconclusive run, not a defect. Your
+        // own host being unreachable is a real finding.
+        passed: endpoint.thirdParty === true,
+        detail: `${endpoint.thirdParty ? 'third-party endpoint' : 'endpoint'} unreachable (${probe.error}) — extraction not attempted`,
+      })
+      continue
+    }
+
+    const destination = outputFile(`remote-${endpoint.id}.jpg`)
+    const startedAt = performance.now()
+    const code = await errorCodeOf(() =>
+      extractThumbnail({ sourceUri: endpoint.url, destinationUri: destination.uri })
+    )
+    const elapsedMs = performance.now() - startedAt
+
+    // Server capability, recorded separately from extraction (plan section 17).
+    const network =
+      `HTTP ${probe.status}, ranges: ${probe.acceptRanges}` +
+      (probe.contentLength ? `, ${(probe.contentLength / 1_000_000).toFixed(1)} MB` : '') +
+      `, first byte in ${probe.elapsedMs.toFixed(0)} ms`
+
+    if (endpoint.expect === 'either') {
+      checks.push({
+        id: `${endpoint.label}: outcome recorded`,
+        passed: true,
+        detail:
+          (code == null
+            ? `succeeded in ${elapsedMs.toFixed(0)} ms`
+            : `blocked with ${code} after ${elapsedMs.toFixed(0)} ms`) +
+          ` — ${endpoint.covers} — ${network}`,
+      })
+    } else if (endpoint.expect === 'success') {
+      const decodedSize = code == null ? await decoded(destination.uri) : null
+      checks.push({
+        id: `${endpoint.label}: extracts`,
+        passed: code == null && decodedSize != null,
+        detail:
+          code == null
+            ? `${decodedSize?.width}x${decodedSize?.height} in ${elapsedMs.toFixed(0)} ms — ${network}`
+            : `failed with ${code} after ${elapsedMs.toFixed(0)} ms — ${network}`,
+        imageUri: code == null ? destination.uri : undefined,
+      })
+    } else {
+      const acceptable = endpoint.acceptableCodes ?? []
+      checks.push({
+        id: `${endpoint.label}: fails cleanly`,
+        // Must fail with a documented code, and must not leave a file behind.
+        passed: code != null && acceptable.includes(code) && !destination.exists,
+        detail:
+          code == null
+            ? `unexpectedly succeeded after ${elapsedMs.toFixed(0)} ms — ${network}`
+            : `${code} after ${elapsedMs.toFixed(0)} ms` +
+              (destination.exists ? ' — LEFT A FILE BEHIND' : '') +
+              ` — ${network}`,
+      })
+    }
+
+    if (endpoint.id === 'delayed-response') {
+      checks.push({
+        id: 'documented limitation: a slow host occupies a native slot',
+        // Informational. There is no way to interrupt a running MMR operation,
+        // so this records the cost rather than asserting a cancellation the
+        // library does not offer.
+        passed: true,
+        detail: `the scheduler slot stayed occupied for ${elapsedMs.toFixed(0)} ms; no timeout is claimed`,
+      })
+    }
+  }
+
+  const leftovers = outputDirectory
+    .list()
+    .filter((entry) => entry.name.startsWith('.framegrab-'))
+  checks.push({
+    id: 'no temporary files left behind by remote failures',
+    passed: leftovers.length === 0,
+    detail: leftovers.map((entry) => entry.name).join(', ') || 'none',
+  })
 
   return checks
 }

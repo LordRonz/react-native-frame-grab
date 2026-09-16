@@ -13,15 +13,17 @@ import {
 import {
   defaultWorkloads,
   formatReport,
+  remoteWorkloads,
   runBenchmark,
   saveReport,
   type Workload,
 } from './src/benchmark'
-import { runHarness, type Check } from './src/harness'
+import { runHarness, runRemoteHarness, type Check } from './src/harness'
 import {
   ensureDirectories,
   listFixtureSources,
   listLibrarySources,
+  listRemoteSources,
   type BenchSource,
 } from './src/sources'
 
@@ -42,12 +44,14 @@ export default function App() {
     ensureDirectories()
     listLibrarySources()
       .then((library) => {
-        const all = [...listFixtureSources(), ...library]
+        const all = [...listFixtureSources(), ...library, ...listRemoteSources()]
         setSources(all)
         setSelected(all[0] ?? null)
       })
       .catch((error) => append(`Could not list sources: ${error}`))
   }, [append])
+
+  const isRemote = selected?.id.startsWith('remote:') ?? false
 
   const withBusy = useCallback(
     async (label: string, run: () => Promise<void>) => {
@@ -75,6 +79,22 @@ export default function App() {
       failed.forEach((check) => append(`  FAIL ${check.id}: ${check.detail}`))
     })
   }, [append, selected, withBusy])
+
+  const onRunRemoteHarness = useCallback(() => {
+    void withBusy('Remote matrix', async () => {
+      setLog('')
+      setChecks([])
+      const results = await runRemoteHarness()
+      setChecks(results)
+      const failed = results.filter((check) => !check.passed)
+      append(`${results.length - failed.length}/${results.length} remote checks passed`)
+      failed.forEach((check) => append(`  FAIL ${check.id}: ${check.detail}`))
+      append(
+        '\nA third-party sample being unreachable is an inconclusive run, not a defect. ' +
+          'The gate is your own host — set APP_MEDIA_HOST_URL in src/remote.ts.'
+      )
+    })
+  }, [append, withBusy])
 
   const onRunBenchmark = useCallback(
     (workloads: Workload[], label: string) => {
@@ -148,6 +168,23 @@ export default function App() {
           disabled={!selected || busy != null}
           onPress={() => onRunBenchmark(defaultWorkloads(), 'Full benchmark')}
         />
+        <Button
+          label="Remote acceptance matrix"
+          disabled={busy != null}
+          onPress={onRunRemoteHarness}
+        />
+        <Button
+          label="Benchmark — remote workloads"
+          disabled={!isRemote || busy != null}
+          onPress={() => onRunBenchmark(remoteWorkloads(), 'Remote benchmark')}
+        />
+        {!isRemote && (
+          <Text style={styles.muted}>
+            Select a remote source above to enable the remote benchmark. Remote
+            numbers are time-to-first-result on your network, not a property of the
+            library.
+          </Text>
+        )}
 
         {busy != null && (
           <View style={styles.busy}>
