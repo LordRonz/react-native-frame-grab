@@ -1,0 +1,34 @@
+{
+  "name": "react-native-frame-grab-example",
+  "version": "0.0.1",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android --variant release",
+    "ios": "expo run:ios --configuration Release",
+    "prebuild": "expo prebuild --clean",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "patch-package"
+  },
+  "dependencies": {
+    "expo": "~57.0.23",
+    "expo-file-system": "~57.0.7",
+    "expo-image-manipulator": "~57.0.18",
+    "expo-media-library": "~57.0.5",
+    "expo-status-bar": "~57.0.1",
+    "expo-video": "~57.0.4",
+    "expo-video-thumbnails": "~57.0.2",
+    "react": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-frame-grab": "file:..",
+    "react-native-nitro-modules": "0.37.1",
+    "react-native-nitro-thumbnail": "^0.1.4"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.15",
+    "babel-preset-expo": "~57.0.12",
+    "patch-package": "^8.0.1",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "frame-grab-bench",
+    "slug": "frame-grab-bench",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.lordronz.framegrab.bench",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Pick videos from your library to benchmark thumbnail extraction."
+      }
+    },
+    "android": {
+      "package": "com.lordronz.framegrab.bench",
+      "permissions": ["android.permission.INTERNET"]
+    },
+    "plugins": [
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Pick videos from your library to benchmark thumbnail extraction.",
+          "savePhotosPermission": "Benchmark results are not saved to your library.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      "expo-video",
+      "./plugins/withSafeBundleScriptPaths"
+    ]
+  }
+}

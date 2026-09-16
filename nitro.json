@@ -1,0 +1,31 @@
+{
+  "$schema": "https://nitro.margelo.com/nitro.schema.json",
+  "cxxNamespace": [
+    "framegrab"
+  ],
+  "ios": {
+    "iosModuleName": "NitroFrameGrab"
+  },
+  "android": {
+    "androidNamespace": [
+      "framegrab"
+    ],
+    "androidCxxLibName": "NitroFrameGrab"
+  },
+  "autolinking": {
+    "FrameGrab": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "HybridFrameGrab"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "HybridFrameGrab"
+      }
+    }
+  },
+  "ignorePaths": [
+    "**/node_modules",
+    "example"
+  ]
+}
