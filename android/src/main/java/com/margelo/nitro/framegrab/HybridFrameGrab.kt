@@ -5,6 +5,8 @@ import android.graphics.Matrix
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
+import androidx.annotation.Keep
+import com.facebook.proguard.annotations.DoNotStrip
 import com.margelo.nitro.NitroModules
 import com.margelo.nitro.core.Promise
 import java.io.BufferedOutputStream
@@ -21,6 +23,9 @@ private const val MAX_MAX_WIDTH = 4096
 /**
  * video URI -> MediaMetadataRetriever -> bounded scale -> Bitmap.compress -> rename(2)
  */
+// JNI constructs this class by name; keep annotations on the spec are not inherited.
+@Keep
+@DoNotStrip
 class HybridFrameGrab : HybridFrameGrabSpec() {
     override var maxConcurrency: Double
         get() = FrameGrabDispatcher.maxConcurrency.toDouble()
