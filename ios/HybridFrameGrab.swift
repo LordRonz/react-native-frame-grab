@@ -84,7 +84,7 @@ final class HybridFrameGrab: HybridFrameGrabSpec {
           result: nil,
           error: NativeFrameGrabFailure(
             code: FrameGrabCode.internalError.rawValue,
-            message: "Unexpected native failure: \(error.localizedDescription)"))
+            message: "Unexpected native failure: \(frameGrabDescribe(error))"))
       }
     }
   }
@@ -266,7 +266,7 @@ private enum FrameGrabJob {
       } catch {
         throw FrameGrabFailure(
           .sourceUnreadable,
-          "Could not read \(frameGrabRedact(sourceUri)): \(error.localizedDescription)")
+          "Could not read \(frameGrabRedact(sourceUri)): \(frameGrabDescribe(error))")
       }
     }
     try await loadLegacyValues(asset, keys: ["duration", "tracks"], sourceUri: sourceUri)
@@ -290,7 +290,7 @@ private enum FrameGrabJob {
         formats = loaded.2
       } catch {
         throw FrameGrabFailure(
-          .sourceUnreadable, "Could not read track properties: \(error.localizedDescription)")
+          .sourceUnreadable, "Could not read track properties: \(frameGrabDescribe(error))")
       }
     } else {
       try await loadLegacyValues(
@@ -336,7 +336,7 @@ private enum FrameGrabJob {
               throwing: FrameGrabFailure(
                 .sourceUnreadable,
                 "Could not load \"\(key)\" \(sourceUri.isEmpty ? "" : "for \(frameGrabRedact(sourceUri)) ")"
-                  + "(\(error?.localizedDescription ?? "status \(status.rawValue)"))."))
+                  + "(\(error.map { frameGrabDescribe($0) } ?? "status \(status.rawValue)"))."))
             return
           }
         }
@@ -374,7 +374,7 @@ private enum FrameGrabJob {
         throw failure
       } catch {
         throw FrameGrabFailure(
-          .frameExtraction, "Frame extraction failed: \(error.localizedDescription)")
+          .frameExtraction, "Frame extraction failed: \(frameGrabDescribe(error))")
       }
     }
     return try await withCheckedThrowingContinuation {
@@ -394,7 +394,7 @@ private enum FrameGrabJob {
           continuation.resume(
             throwing: FrameGrabFailure(
               .frameExtraction,
-              "Frame extraction failed: \(error?.localizedDescription ?? "unknown error")"))
+              "Frame extraction failed: \(error.map { frameGrabDescribe($0) } ?? "unknown error")"))
         case .cancelled:
           continuation.resume(
             throwing: FrameGrabFailure(.frameExtraction, "Frame extraction was cancelled."))

@@ -32,6 +32,23 @@ struct FrameGrabFailure: Error {
   }
 }
 
+/// Keep native error identities when bridging to JS. AVFoundation often hides
+/// the useful OSStatus several levels down. Do not dump underlying userInfo:
+/// it can contain signed URLs and other sensitive source details.
+func frameGrabDescribe(_ error: Error) -> String {
+  let ns = error as NSError
+  var parts = ["\(ns.localizedDescription) [\(ns.domain) \(ns.code)]"]
+  var seen: Set<ObjectIdentifier> = [ObjectIdentifier(ns)]
+  var current = ns
+  while let underlying = current.userInfo[NSUnderlyingErrorKey] as? NSError,
+    seen.insert(ObjectIdentifier(underlying)).inserted
+  {
+    parts.append("underlying \(underlying.domain) \(underlying.code)")
+    current = underlying
+  }
+  return parts.joined(separator: " — ")
+}
+
 /// Strips credentials and query strings from remote URIs before they reach a
 /// log line or a JS error message. Signed URLs are secrets.
 func frameGrabRedact(_ uri: String) -> String {
