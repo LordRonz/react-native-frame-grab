@@ -1,6 +1,6 @@
 {
   "name": "react-native-frame-grab",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Fast video thumbnail extraction for React Native: one frame, straight to a JPEG file.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
