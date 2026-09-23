@@ -12,9 +12,9 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
-    "expo": "~57.0.23",
+    "expo": "~57.0.24",
     "expo-file-system": "~57.0.7",
-    "expo-image-manipulator": "~57.0.18",
+    "expo-image-manipulator": "~57.0.19",
     "expo-media-library": "~57.0.5",
     "expo-status-bar": "~57.0.1",
     "expo-video": "~57.0.4",
@@ -26,7 +26,7 @@
     "react-native-nitro-thumbnail": "^0.1.4"
   },
   "devDependencies": {
-    "@types/react": "^19.2.15",
+    "@types/react": "~19.2.4",
     "babel-preset-expo": "~57.0.12",
     "patch-package": "^8.0.1",
     "typescript": "^6.0.3"
