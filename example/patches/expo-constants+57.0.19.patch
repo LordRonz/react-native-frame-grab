@@ -1,7 +1,7 @@
-diff --git a/node_modules/expo/node_modules/expo-constants/ios/EXConstants.podspec b/node_modules/expo/node_modules/expo-constants/ios/EXConstants.podspec
+diff --git a/node_modules/expo-constants/ios/EXConstants.podspec b/node_modules/expo-constants/ios/EXConstants.podspec
 index c4f3b6b..e1c1a68 100644
---- a/node_modules/expo/node_modules/expo-constants/ios/EXConstants.podspec
-+++ b/node_modules/expo/node_modules/expo-constants/ios/EXConstants.podspec
+--- a/node_modules/expo-constants/ios/EXConstants.podspec
++++ b/node_modules/expo-constants/ios/EXConstants.podspec
 @@ -37,7 +37,9 @@ Pod::Spec.new do |s|
    env_vars = ENV['PROJECT_ROOT'] ? "PROJECT_ROOT=#{ENV['PROJECT_ROOT']} " : ""
    script_phase = {

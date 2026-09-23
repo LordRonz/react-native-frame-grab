@@ -10,7 +10,18 @@
       "bundleIdentifier": "com.lordronz.framegrab.bench",
       "supportsTablet": true,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Pick videos from your library to benchmark thumbnail extraction."
+        "NSPhotoLibraryUsageDescription": "Pick videos from your library to benchmark thumbnail extraction.",
+        "UIApplicationSceneManifest": {
+          "UIApplicationSupportsMultipleScenes": false,
+          "UISceneConfigurations": {
+            "UIWindowSceneSessionRoleApplication": [
+              {
+                "UISceneConfigurationName": "Default Configuration",
+                "UISceneDelegateClassName": "EXExpoAppSceneDelegate"
+              }
+            ]
+          }
+        }
       }
     },
     "android": {
@@ -27,7 +38,8 @@
         }
       ],
       "expo-video",
-      "./plugins/withSafeBundleScriptPaths"
+      "./plugins/withSafeBundleScriptPaths",
+      "./plugins/withSceneLifecycle"
     ]
   }
 }

@@ -1,12 +1,12 @@
 package com.margelo.nitro.framegrab
 
-import android.content.Context
 import android.net.Uri
 import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
 import android.system.StructStat
 import java.io.File
+import java.io.FileDescriptor
 import java.util.ArrayDeque
 import java.util.concurrent.Executors
 import java.util.concurrent.SynchronousQueue
@@ -285,48 +285,41 @@ internal object FrameGrabPaths {
     fun assertDistinct(
         source: FrameGrabSource,
         destination: File,
-        context: Context?,
     ) {
+        // `content://` is checked in the job, on the descriptor it reads.
+        if (source !is FrameGrabSource.LocalFile) return
         val destinationStat = statOrNull(destination.absolutePath) ?: return
 
-        when (source) {
-            is FrameGrabSource.LocalFile -> {
-                val samePath =
-                    runCatching {
-                        source.file.canonicalPath == destination.canonicalPath
-                    }.getOrDefault(false)
-                val sourceStat = statOrNull(source.file.absolutePath)
-                val sameNode =
-                    sourceStat != null &&
-                        sourceStat.st_dev == destinationStat.st_dev &&
-                        sourceStat.st_ino == destinationStat.st_ino
-                if (samePath || sameNode) {
-                    throw FrameGrabException(
-                        FrameGrabCode.INVALID_ARGUMENT,
-                        "`sourceUri` and `destinationUri` resolve to the same file.",
-                    )
-                }
-            }
-            is FrameGrabSource.Content -> {
-                var sameNode = false
-                runCatching {
-                    context?.contentResolver?.openFileDescriptor(source.uri, "r")?.use { descriptor ->
-                        val sourceStat = Os.fstat(descriptor.fileDescriptor)
-                        sameNode =
-                            sourceStat.st_dev == destinationStat.st_dev &&
-                            sourceStat.st_ino == destinationStat.st_ino
-                    }
-                }
-                if (sameNode) {
-                    throw FrameGrabException(
-                        FrameGrabCode.INVALID_ARGUMENT,
-                        "`sourceUri` and `destinationUri` resolve to the same file.",
-                    )
-                }
-            }
-            is FrameGrabSource.Remote -> Unit
+        val samePath =
+            runCatching {
+                source.file.canonicalPath == destination.canonicalPath
+            }.getOrDefault(false)
+        val sourceStat = statOrNull(source.file.absolutePath)
+        if (samePath || (sourceStat != null && sameNode(sourceStat, destinationStat))) {
+            throw sameFile()
         }
     }
+
+    /** `content://` identity check. */
+    fun assertDistinct(
+        source: FileDescriptor,
+        destination: File,
+    ) {
+        val destinationStat = statOrNull(destination.absolutePath) ?: return
+        val sourceStat = runCatching { Os.fstat(source) }.getOrNull() ?: return
+        if (sameNode(sourceStat, destinationStat)) throw sameFile()
+    }
+
+    private fun sameNode(
+        a: StructStat,
+        b: StructStat,
+    ): Boolean = a.st_dev == b.st_dev && a.st_ino == b.st_ino
+
+    private fun sameFile() =
+        FrameGrabException(
+            FrameGrabCode.INVALID_ARGUMENT,
+            "`sourceUri` and `destinationUri` resolve to the same file.",
+        )
 
     /** Canonical reservation key: resolved parent directory + destination filename. */
     fun reservationKey(destination: File): String {
