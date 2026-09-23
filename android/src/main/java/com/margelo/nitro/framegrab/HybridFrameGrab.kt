@@ -101,7 +101,7 @@ class HybridFrameGrab : HybridFrameGrabSpec() {
         val source = FrameGrabPaths.resolveSource(request.sourceUri)
         val destination = FrameGrabPaths.resolveDestination(request.destinationUri)
         FrameGrabPaths.validateDestination(destination)
-        FrameGrabPaths.assertDistinct(source, destination, NitroModules.applicationContext)
+        FrameGrabPaths.assertDistinct(source, destination)
 
         if (source is FrameGrabSource.LocalFile && !source.file.isFile) {
             throw FrameGrabException(
@@ -141,7 +141,7 @@ class HybridFrameGrab : HybridFrameGrabSpec() {
             // 1. Source.
             val sourceStart = System.nanoTime()
             retriever = MediaMetadataRetriever()
-            openSource(retriever, plan.source)
+            openSource(retriever, plan.source, plan.destination)
             val sourceMs = elapsedMs(sourceStart)
 
             // 2. Metadata + bounds.
@@ -272,6 +272,7 @@ class HybridFrameGrab : HybridFrameGrabSpec() {
     private fun openSource(
         retriever: MediaMetadataRetriever,
         source: FrameGrabSource,
+        destination: File,
     ) {
         try {
             when (source) {
@@ -283,7 +284,22 @@ class HybridFrameGrab : HybridFrameGrabSpec() {
                                 FrameGrabCode.INTERNAL,
                                 "No React application context available for `content://` access.",
                             )
-                    retriever.setDataSource(context, source.uri)
+                    // One open for both checks; `setDataSource(context, uri)` would reopen.
+                    val descriptor =
+                        context.contentResolver.openAssetFileDescriptor(source.uri, "r")
+                            ?: throw FrameGrabException(
+                                FrameGrabCode.SOURCE_UNREADABLE,
+                                "Content provider returned no descriptor.",
+                            )
+                    descriptor.use {
+                        FrameGrabPaths.assertDistinct(it.fileDescriptor, destination)
+                        // Mirrors `setDataSource(Context, Uri)`.
+                        if (it.declaredLength < 0) {
+                            retriever.setDataSource(it.fileDescriptor)
+                        } else {
+                            retriever.setDataSource(it.fileDescriptor, it.startOffset, it.declaredLength)
+                        }
+                    }
                 }
                 is FrameGrabSource.Remote ->
                     retriever.setDataSource(source.uri, HashMap<String, String>())
