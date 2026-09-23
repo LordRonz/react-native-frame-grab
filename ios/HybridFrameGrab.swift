@@ -24,13 +24,14 @@ private let maxMaxWidth = 4096
 /// Swift's cooperative thread pool (which is sized for non-blocking work).
 /// Only jobs that already hold a scheduler slot reach this queue.
 private let frameGrabIOQueue = DispatchQueue(
-  label: "com.lordronz.framegrab.io", qos: .userInitiated, attributes: .concurrent)
+  label: "com.lordronz.framegrab.io", qos: .userInitiated, attributes: .concurrent,
+  autoreleaseFrequency: .workItem)
 
 /// Pre-admission validation stats the filesystem, which must not happen on the
 /// JS thread either. Serial on purpose: a burst of rejected requests should not
 /// explode GCD's thread pool before any of them has a slot.
 private let frameGrabIntakeQueue = DispatchQueue(
-  label: "com.lordronz.framegrab.intake", qos: .userInitiated)
+  label: "com.lordronz.framegrab.intake", qos: .userInitiated, autoreleaseFrequency: .workItem)
 
 private func onQueue<T>(
   _ queue: DispatchQueue, _ body: @escaping @Sendable () throws -> T
